@@ -10,11 +10,12 @@ input_size = 28
 sequence_length = 28
 num_layers = 2
 hidden_size = 256
-
 num_class = 10
 lr = 1e-3
-batch_size = 1
+batch_size = 64
 num_epochs = 2
+load = False
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #Model
@@ -38,7 +39,7 @@ class BRNN(nn.Module):
 
 def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
     print("=>Saving checkpoint")
-    torch.save(sate, filename)
+    torch.save(state, filename)
 
 def load_checkpoint(checkpoint):
     print("=>Loading checkpoint")
@@ -59,13 +60,14 @@ model = BRNN(input_size, hidden_size, num_layers, num_class).to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr = lr)
 
-load_checkpoint(torch.load("my_checkpoint.pth.tar"))
+if load:
+  load_checkpoint(torch.load("my_checkpoint.pth.tar"))
 #Train
 for epoch in range(num_epochs):
     losses = []
-    if epoch%2==0:
-        checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}
-        save_checkpoint(checkpoint)
+    if epoch%1==0:
+      checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}
+      save_checkpoint(checkpoint)
 
     for batch_idx, (data, targets) in enumerate(train_loader):
         data = data.to(device)
@@ -76,7 +78,8 @@ for epoch in range(num_epochs):
         #batch prediction
         pred = model(data)
         loss = criterion(pred, targets)
-
+        if batch_idx%100==0:
+          print(f"Epoch: {epoch}/{num_epochs}\tBatch Index:{batch_idx}\tLoss:{loss:0.5f}")
         #back prop
         optimizer.zero_grad()
         loss.backward()
